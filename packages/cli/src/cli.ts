@@ -26,7 +26,7 @@ Commands
 Global options: --project <dir>  --help  --version
 
 Agents: claude-code (reference integration), codex, gemini-cli, copilot-cli, cursor, grok, opencode, amp, aider (shims only), or a custom template in config.yaml.
-Docs: https://github.com/HrishiPatel27/Agentic-Call-Check#readme`;
+Docs: https://github.com/HrishiPatel27/agent-night-watch#readme`;
 
 const STRING_FLAGS = ['project', 'preset', 'agent', 'task', 'hours', 'budget-usd', 'mode', 'policy', 'model', 'max-turns', 'port', 'limit', 'out', 'tool', 'input', 'worktree', 'cwd'];
 const BOOL_FLAGS = ['help', 'version', 'hooks', 'force', 'no-dashboard', 'detach', '_child', 'dry-run', 'open', 'json', 'md', 'keep-branch', 'purge', 'prune', 'all-finished', 'yes', 'attended'];

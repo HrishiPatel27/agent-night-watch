@@ -13,4 +13,4 @@ nightwatch report latest --open
 ```
 
 Requires Node.js 22.13+ and git. Full documentation:
-https://github.com/HrishiPatel27/Agentic-Call-Check#readme
+https://github.com/HrishiPatel27/agent-night-watch#readme

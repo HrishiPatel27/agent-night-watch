@@ -1,0 +1,3 @@
+# Default owner for everything. With "Require review from Code Owners" enabled
+# in the branch ruleset, every pull request needs this account's approval.
+* @HrishiPatel27

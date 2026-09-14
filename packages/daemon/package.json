@@ -14,7 +14,7 @@
   },
   "files": ["dist", "README.md"],
   "engines": { "node": ">=22.13.0" },
-  "repository": { "type": "git", "url": "https://github.com/HrishiPatel27/Agentic-Call-Check.git", "directory": "packages/daemon" },
+  "repository": { "type": "git", "url": "https://github.com/HrishiPatel27/agent-night-watch.git", "directory": "packages/daemon" },
   "scripts": { "build": "tsc -b" },
   "dependencies": {
     "@nightwatch-agent/shared": "0.1.0",

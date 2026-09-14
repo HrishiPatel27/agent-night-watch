@@ -1,0 +1,7 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/HrishiPatel27/agent-night-watch/security/advisories/new
+    about: >-
+      Policy bypasses, silent supervision failures and secret leakage should be
+      reported privately first. Please do not open a public issue for those.
