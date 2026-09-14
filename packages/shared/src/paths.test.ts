@@ -29,7 +29,10 @@ test('canonicalizePath resolves relative paths and symlinked directories', () =>
   if (linked) {
     const viaLink = canonicalizePath('link/deeper/file.txt', base);
     assert.equal(viaLink.viaSymlink, true);
-    assert.ok(isPathInside(fs.realpathSync(real), viaLink.path));
+    // The link component is gone: the path now runs through the real directory.
+    assert.match(viaLink.path.replace(/\\/g, '/'), /\/real\/deeper\/file\.txt$/);
+    // Compare canonical forms on both sides; Windows also rewrites 8.3 short names (RUNNER~1).
+    assert.ok(isPathInside(canonicalizePath(real, base).path, viaLink.path));
   }
   fs.rmSync(base, { recursive: true, force: true });
 });

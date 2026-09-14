@@ -56,6 +56,10 @@ interface Env {
   ctx: PolicyContext;
   platform: NodeJS.Platform;
   home: string;
+  /** Canonical forms of the reference directories, for containment checks against canonical call paths. */
+  homeReal: string;
+  projectRootReal: string;
+  runWorktreeReal: string;
   writeRoots: string[];
   readRoots: string[];
   secretMatch: PathMatcher;
@@ -72,13 +76,20 @@ function buildEnv(ctx: PolicyContext): Env {
   const home = ctx.homeDir ?? os.homedir();
   const vars = { RUN_WORKTREE: ctx.runWorktree, PROJECT_ROOT: ctx.projectRoot, HOME: home };
   const scratch = ctx.scratchDirs ?? tmpDirs();
-  const writeRoots = uniq([ctx.runWorktree, ...expandRoots(ctx.policy.allow.paths, vars), ...scratch]);
-  const readRoots = uniq([...writeRoots, ctx.projectRoot, ...expandRoots(ctx.policy.allow.read_paths, vars)]);
+  const homeReal = realRoot(home, home, home);
+  const projectRootReal = realRoot(ctx.projectRoot, ctx.projectRoot, home);
+  const runWorktreeReal = realRoot(ctx.runWorktree, ctx.projectRoot, home);
+  // Call paths are canonicalised before containment checks, so the configured roots must be too:
+  // otherwise a root reached through a symlink (macOS /etc, /tmp and $TMPDIR; a project under a
+  // symlinked path) never matches and the user's own allow rule is silently ignored.
+  const writeRoots = withCanonical([ctx.runWorktree, ...expandRoots(ctx.policy.allow.paths, vars), ...scratch], ctx.projectRoot, home);
+  const readRoots = withCanonical([...writeRoots, ctx.projectRoot, ...expandRoots(ctx.policy.allow.read_paths, vars)], ctx.projectRoot, home);
   const secretMatch = compilePathGlobs([...C.DEFAULT_SECRET_PATH_GLOBS, ...ctx.policy.deny.paths], vars, platform);
   const protectedGlobs = compilePathGlobs(C.PROTECTED_PATH_GLOBS, vars, platform);
-  const nightwatchDir = path.join(ctx.projectRoot, '.nightwatch');
+  const nightwatchDirs = uniq([path.join(ctx.projectRoot, '.nightwatch'), path.join(projectRootReal, '.nightwatch')]);
+  const worktreeDirs = uniq([ctx.runWorktree, runWorktreeReal]);
   const protectedMatch: PathMatcher = (abs) => {
-    if (isPathInside(nightwatchDir, abs, platform) && !isPathInside(ctx.runWorktree, abs, platform)) return '.nightwatch/**';
+    if (insideAny(nightwatchDirs, abs, platform) && !insideAny(worktreeDirs, abs, platform)) return '.nightwatch/**';
     return protectedGlobs(abs);
   };
   const extra = ctx.policy.redact_patterns ?? [];
@@ -86,6 +97,9 @@ function buildEnv(ctx: PolicyContext): Env {
     ctx,
     platform,
     home,
+    homeReal,
+    projectRootReal,
+    runWorktreeReal,
     writeRoots,
     readRoots,
     secretMatch,
@@ -99,6 +113,34 @@ function buildEnv(ctx: PolicyContext): Env {
 
 function uniq<T>(xs: T[]): T[] {
   return [...new Set(xs.filter(Boolean))];
+}
+
+/** Canonical form of a configured directory, falling back to the literal path when it cannot be resolved. */
+function realRoot(dir: string, base: string, home: string): string {
+  try {
+    return canonicalizePath(dir, base, home).path;
+  } catch {
+    return dir;
+  }
+}
+
+/**
+ * Each configured root plus its canonical form. Both are kept: the canonical one matches calls that
+ * resolve through a symlink, the literal one still works for a root that does not exist yet.
+ */
+function withCanonical(roots: string[], base: string, home: string): string[] {
+  const out: string[] = [];
+  for (const r of roots) {
+    if (!r) continue;
+    out.push(r);
+    const real = realRoot(r, base, home);
+    if (real !== r) out.push(real);
+  }
+  return uniq(out);
+}
+
+function insideAny(roots: string[], abs: string, platform: NodeJS.Platform): boolean {
+  return roots.some((r) => isPathInside(r, abs, platform));
 }
 
 // ---------------------------------------------------------------------------
@@ -157,7 +199,7 @@ function evaluateInner(req: ToolCallRequest, env: Env, normalized: NormalizedCal
     if (!command.trim()) {
       hits.push({ code: 'MALFORMED_INPUT', rule: 'bash.empty', reason: 'empty command' });
     } else {
-      const r = evaluateShell(command, input, req.cwd, env, normalized);
+      const r = evaluateShell(command, input, req.cwd, env, normalized, tool);
       hits.push(...r.hits);
       unknown = r.unknown;
       explicit = r.explicit;
@@ -339,7 +381,7 @@ function checkPath(raw: string, cwd: string, env: Env, access: Access, normalize
     return { code: 'SECRET_PATH', rule: 'path.secret', reason: `${shortPath(abs, env)} matches deny.paths pattern "${secretHit}"`, matched: raw };
   }
   const roots = access === 'write' ? env.writeRoots : env.readRoots;
-  if (!roots.some((r) => isPathInside(r, abs, env.platform))) {
+  if (!insideAny(roots, abs, env.platform)) {
     const where = access === 'write' ? 'writable roots' : 'readable roots';
     return {
       code: 'OUTSIDE_WORKTREE',
@@ -353,8 +395,10 @@ function checkPath(raw: string, cwd: string, env: Env, access: Access, normalize
 }
 
 function shortPath(abs: string, env: Env): string {
-  const rel = path.relative(env.ctx.runWorktree, abs);
-  if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return `./${rel.replace(/\\/g, '/')}`;
+  for (const root of uniq([env.runWorktreeReal, env.ctx.runWorktree])) {
+    const rel = path.relative(root, abs);
+    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return `./${rel.replace(/\\/g, '/')}`;
+  }
   return abs;
 }
 
@@ -373,7 +417,7 @@ const DEV_DISK_RE = /^\/dev\/(sd|hd|nvme|disk|rdisk|xvd|vd|mmcblk|loop|dm-|md|ma
 const DEV_IGNORE_RE = /^\/dev\/(null|stdout|stderr|stdin|tty|fd\/\d+|zero|urandom|random)$/i;
 const FORK_BOMB_RE = /:\s*\(\s*\)\s*\{[^}]*:\s*\|\s*:\s*&/;
 
-function evaluateShell(command: string, input: Record<string, unknown>, cwd: string, env: Env, normalized: NormalizedCall): ShellResult {
+function evaluateShell(command: string, input: Record<string, unknown>, cwd: string, env: Env, normalized: NormalizedCall, tool = 'Bash'): ShellResult {
   const hits: Hit[] = [];
   const { ctx } = env;
   const policy = ctx.policy;
@@ -399,7 +443,8 @@ function evaluateShell(command: string, input: Record<string, unknown>, cwd: str
   const denyRaw = matchesAnyCommand(env.denyCommands, command);
   if (denyRaw) hits.push({ code: 'DESTRUCTIVE_COMMAND', rule: 'policy.deny.commands', reason: `matches deny.commands pattern "${denyRaw}"`, matched: command, weak: true });
 
-  const parsed = parseCommand(command);
+  // PowerShell is not a POSIX shell: parsing it with backslash escapes would erase every Windows path.
+  const parsed = parseCommand(command, 0, { escapeBackslash: tool !== 'PowerShell' });
   let unknown: Hit | null = null;
   const explicitMatches: string[] = [];
   let allSegmentsCovered = parsed.segments.length > 0;
@@ -1063,9 +1108,10 @@ function dbHosts(argv: string[]): string[] {
 function isRootLike(abs: string, env: Env): boolean {
   const n = abs.replace(/\\/g, '/').replace(/\/+$/, '');
   if (n === '' || /^[A-Za-z]:$/.test(n)) return true; // filesystem root
-  if (isSame(abs, env.home, env.platform)) return true;
-  if (isSame(abs, env.ctx.projectRoot, env.platform)) return true;
-  if (isSame(abs, env.ctx.runWorktree, env.platform)) return true;
+  // Compared against canonical forms too: the call's path has been resolved, these have not.
+  for (const dir of [env.home, env.homeReal, env.ctx.projectRoot, env.projectRootReal, env.ctx.runWorktree, env.runWorktreeReal]) {
+    if (isSame(abs, dir, env.platform)) return true;
+  }
   if (/(^|\/)\.git$/.test(n)) return true;
   return false;
 }
