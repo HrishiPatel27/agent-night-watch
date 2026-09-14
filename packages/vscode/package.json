@@ -6,7 +6,7 @@
   "publisher": "nightwatch-agent",
   "license": "MIT",
   "private": true,
-  "repository": { "type": "git", "url": "https://github.com/HrishiPatel27/Agentic-Call-Check.git", "directory": "packages/vscode" },
+  "repository": { "type": "git", "url": "https://github.com/HrishiPatel27/agent-night-watch.git", "directory": "packages/vscode" },
   "engines": { "vscode": "^1.90.0", "node": ">=22.13.0" },
   "categories": ["Other"],
   "keywords": ["agent", "claude code", "codex", "cursor", "safety", "overnight"],
