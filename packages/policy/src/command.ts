@@ -33,6 +33,15 @@ export interface SimpleCommand {
   hereDoc: boolean;
 }
 
+export interface ParseOptions {
+  /**
+   * POSIX shells treat a backslash as an escape character. PowerShell and cmd.exe do not, and on
+   * Windows a backslash is the path separator, so escaping there would silently destroy every path
+   * (`C:\\Users\\me\\.ssh\\id_rsa` becomes `C:Usersme.sshid_rsa`) and hide it from the path rules.
+   */
+  escapeBackslash?: boolean;
+}
+
 export interface ParsedCommand {
   segments: SimpleCommand[];
   /** Command substitutions found (`$(…)`, backticks); they are also parsed into `segments`. */
@@ -80,7 +89,8 @@ function isSpace(c: string): boolean {
   return c === ' ' || c === '\t' || c === '\r';
 }
 
-function lex(src: string): LexResult {
+function lex(src: string, opts: ParseOptions = {}): LexResult {
+  const escapeBackslash = opts.escapeBackslash !== false;
   const tokens: Token[] = [];
   const substitutions: string[] = [];
   const notes: string[] = [];
@@ -287,7 +297,7 @@ function lex(src: string): LexResult {
           i++;
           break;
         }
-        if (d === '\\' && i + 1 < src.length) {
+        if (d === '\\' && escapeBackslash && i + 1 < src.length) {
           word += src[i + 1];
           i += 2;
           continue;
@@ -316,7 +326,7 @@ function lex(src: string): LexResult {
       }
       continue;
     }
-    if (c === '\\') {
+    if (c === '\\' && escapeBackslash) {
       if (next === '\n') {
         i += 2; // line continuation
         continue;
@@ -479,8 +489,8 @@ const MAX_DEPTH = 6;
  * Parse a shell command line into simple commands, recursively expanding
  * `bash -c`, `eval`, `xargs`, `sudo`, `env` and command substitutions.
  */
-export function parseCommand(command: string, depth = 0): ParsedCommand {
-  const lexed = lex(command);
+export function parseCommand(command: string, depth = 0, opts: ParseOptions = {}): ParsedCommand {
+  const lexed = lex(command, opts);
   const { segments: rawSegments, notes: segNotes, complete: segComplete } = tokensToSegments(lexed.tokens);
   const notes = [...lexed.notes, ...segNotes];
   let complete = lexed.complete && segComplete;
@@ -492,14 +502,14 @@ export function parseCommand(command: string, depth = 0): ParsedCommand {
   }
 
   for (const seg of rawSegments) {
-    const expanded = unwrap(seg, depth);
+    const expanded = unwrap(seg, depth, opts);
     complete = complete && expanded.complete;
     notes.push(...expanded.notes);
     segments.push(...expanded.segments);
   }
 
   for (const sub of lexed.substitutions) {
-    const inner = parseCommand(sub, depth + 1);
+    const inner = parseCommand(sub, depth + 1, opts);
     complete = complete && inner.complete;
     notes.push(...inner.notes);
     segments.push(...inner.segments);
@@ -524,7 +534,7 @@ function takeOptionWithValue(argv: string[], idx: number, shortOpts: Set<string>
 }
 
 /** Strip wrapper commands that run another command, recursing into `sh -c` strings. */
-export function unwrap(seg: SimpleCommand, depth = 0): UnwrapResult {
+export function unwrap(seg: SimpleCommand, depth = 0, opts: ParseOptions = {}): UnwrapResult {
   const notes: string[] = [];
   let complete = true;
   let argv = [...seg.argv];
@@ -597,7 +607,7 @@ export function unwrap(seg: SimpleCommand, depth = 0): UnwrapResult {
     }
     if (head === 'eval') {
       wrappers.push('eval');
-      const inner = parseCommand(argv.slice(1).join(' '), depth + 1);
+      const inner = parseCommand(argv.slice(1).join(' '), depth + 1, opts);
       return finish(inner.segments, inner.complete && complete, [...notes, ...inner.notes]);
     }
     if (SHELLS.has(head) || head === 'pwsh' || head === 'powershell' || head === 'cmd') {
@@ -620,7 +630,8 @@ export function unwrap(seg: SimpleCommand, depth = 0): UnwrapResult {
           const opaque: SimpleCommand = { ...seg, argv: [head, script], wrappers: [...wrappers], privileged, detached, raw: `${head} -c ${script}` };
           return finish([opaque], false, [...notes, `${head} script not parsed`]);
         }
-        const inner = parseCommand(script, depth + 1);
+        // A POSIX shell invoked from anywhere uses POSIX escaping for its script argument.
+        const inner = parseCommand(script, depth + 1, { escapeBackslash: true });
         const mapped = inner.segments.map((s) => ({ ...s, wrappers: [...wrappers, ...s.wrappers], privileged: privileged || s.privileged, detached: detached || s.detached }));
         return finish(mapped, inner.complete && complete, [...notes, ...inner.notes]);
       }

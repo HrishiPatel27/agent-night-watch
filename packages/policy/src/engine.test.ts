@@ -108,6 +108,39 @@ test('scratch directories are writable', () => {
   }
 });
 
+test('configured roots reached through a symlink still match (macOS /etc, /tmp, $TMPDIR)', () => {
+  const ctx = makeCtx();
+  try {
+    // Mirror the macOS layout: an allow root that is a symlink to a directory outside the project.
+    const sys = path.join(ctx.projectRoot, '..', 'sys');
+    fs.mkdirSync(path.join(sys, 'private', 'etc'), { recursive: true });
+    fs.writeFileSync(path.join(sys, 'private', 'etc', 'hosts'), '127.0.0.1 localhost');
+    try {
+      fs.symlinkSync(path.join(sys, 'private', 'etc'), path.join(sys, 'etc'), 'dir');
+    } catch {
+      return; // symlinks need a privilege we may not have on Windows
+    }
+    const withRoot: PolicyContext = { ...ctx, policy: { ...ctx.policy, allow: { ...ctx.policy.allow, read_paths: [`${path.join(sys, 'etc')}/**`] } } };
+    const read = evaluate({ tool: 'Read', input: { file_path: path.join(sys, 'etc', 'hosts') }, cwd: ctx.runWorktree }, withRoot);
+    assert.equal(read.decision, 'allow', read.reason);
+
+    // And a run worktree that is itself reached through a symlink.
+    fs.symlinkSync(ctx.runWorktree, path.join(ctx.projectRoot, 'wtlink'), 'dir');
+    const linked: PolicyContext = { ...ctx, runWorktree: path.join(ctx.projectRoot, 'wtlink') };
+    const write = evaluate({ tool: 'Write', input: { file_path: path.join(ctx.projectRoot, 'wtlink', 'new.txt'), content: 'x' }, cwd: path.join(ctx.projectRoot, 'wtlink') }, linked);
+    assert.equal(write.decision, 'allow', write.reason);
+    // Protections must survive the symlink too.
+    const secret = evaluate({ tool: 'Read', input: { file_path: path.join(ctx.projectRoot, 'wtlink', '.env') }, cwd: ctx.runWorktree }, linked);
+    assert.equal(secret.reasonCode, 'SECRET_PATH');
+    const tamper = evaluate({ tool: 'Write', input: { file_path: path.join(ctx.projectRoot, '.nightwatch', 'nightwatch.db'), content: 'x' }, cwd: ctx.runWorktree }, linked);
+    assert.equal(tamper.reasonCode, 'SUPERVISOR_TAMPER');
+    const outside = evaluate({ tool: 'Write', input: { file_path: path.join(sys, 'etc', 'hosts'), content: 'x' }, cwd: ctx.runWorktree }, withRoot);
+    assert.equal(outside.reasonCode, 'OUTSIDE_WORKTREE', 'a read-only root is still not writable');
+  } finally {
+    ctx.cleanup();
+  }
+});
+
 test('normalized call is redacted and never throws on odd input', () => {
   const ctx = makeCtx();
   try {

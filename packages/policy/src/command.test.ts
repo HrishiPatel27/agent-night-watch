@@ -74,6 +74,18 @@ test('here documents are skipped', () => {
   assert.equal(p.segments[0].hereDoc, true);
 });
 
+test('PowerShell and cmd paths keep their backslashes', () => {
+  // A POSIX shell escapes with a backslash, so C:\\Users\\me would collapse to C:Usersme and the
+  // path rules would never see a path at all.
+  const win = parseCommand(String.raw`Get-Content C:\Users\me\.ssh\id_rsa`, 0, { escapeBackslash: false });
+  assert.deepEqual(win.segments[0].argv, ['Get-Content', String.raw`C:\Users\me\.ssh\id_rsa`]);
+  const quoted = parseCommand(String.raw`type "D:\proj\.env"`, 0, { escapeBackslash: false });
+  assert.deepEqual(quoted.segments[0].argv, ['type', String.raw`D:\proj\.env`]);
+  // POSIX escaping is untouched by default.
+  assert.deepEqual(parseCommand(String.raw`echo a\ b`).segments[0].argv, ['echo', 'a b']);
+  assert.deepEqual(parseCommand(String.raw`Get-Content C:\Users\me`).segments[0].argv, ['Get-Content', 'C:Usersme']);
+});
+
 test('helpers', () => {
   assert.equal(commandName('/usr/bin/RM.EXE'), 'rm');
   assert.equal(hasFlag(['rm', '-fr', 'x'], ['r']), true);

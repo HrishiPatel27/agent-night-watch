@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
-import type { Decision, Policy, PolicyContext, ReasonCode } from '@nightwatch-agent/shared';
+import { toPosix, type Decision, type Policy, type PolicyContext, type ReasonCode } from '@nightwatch-agent/shared';
 import { evaluate } from './engine.js';
 
 export interface FixtureCase {
@@ -49,7 +49,9 @@ export function runFixtures(dir: string, base: PolicyContext): FixtureResult[] {
     cases.forEach((c, index) => {
       const policy: Policy = c.policy ? deepMerge(base.policy, c.policy) : base.policy;
       const ctx: PolicyContext = { ...base, policy, mode: policy.mode };
-      const vars: Record<string, string> = { PROJECT_ROOT: base.projectRoot, RUN_WORKTREE: base.runWorktree, HOME: base.homeDir ?? '' };
+      // Forward slashes: this is what an agent emits in a shell command on every platform, and a
+      // Windows backslash path inside a POSIX shell string is an escape sequence, not a path.
+      const vars: Record<string, string> = { PROJECT_ROOT: toPosix(base.projectRoot), RUN_WORKTREE: toPosix(base.runWorktree), HOME: toPosix(base.homeDir ?? '') };
       const subst = (v: unknown): unknown => (typeof v === 'string' ? v.replace(/\$\{(PROJECT_ROOT|RUN_WORKTREE|HOME)\}/g, (_, k) => vars[k]) : v);
       const tool = c.tool ?? 'Bash';
       const rawInput = c.input ?? (c.command != null ? { command: c.command } : {});
