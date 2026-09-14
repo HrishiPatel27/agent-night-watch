@@ -1,0 +1,10 @@
+# Budget stop conditions and modes are exercised in engine.test.ts; this file keeps a few
+# mode-specific expectations that only need policy overrides.
+- command: "rm -rf /"
+  expect: allow
+  reason: OBSERVE_ONLY
+  policy: { mode: observe }
+  note: observe mode records what would have happened but never blocks
+- command: "npm run build"
+  expect: allow
+  policy: { mode: observe }

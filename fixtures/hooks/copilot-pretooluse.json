@@ -1,0 +1,4 @@
+{
+  "payload": { "sessionId": "s", "timestamp": 1757462400000, "cwd": "/w", "toolName": "bash", "toolArgs": { "command": "go test ./..." } },
+  "expect": { "phase": "pre", "tool": "Bash", "command": "go test ./..." }
+}

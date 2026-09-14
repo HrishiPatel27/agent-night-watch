@@ -1,0 +1,13 @@
+{
+  "adapter": "claude-code",
+  "payload": {
+    "session_id": "abc123",
+    "cwd": "/Users/dev/project",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": { "file_path": "/Users/dev/project/src/new.ts", "content": "export {}" },
+    "tool_use_id": "toolu_02",
+    "tool_response": { "filePath": "/Users/dev/project/src/new.ts", "success": true }
+  },
+  "expect": { "phase": "post", "tool": "Write", "file_path": "/Users/dev/project/src/new.ts" }
+}

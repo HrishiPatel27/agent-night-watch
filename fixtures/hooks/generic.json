@@ -1,0 +1,4 @@
+{
+  "payload": { "tool": "edit_file", "input": { "target_file": "src/a.ts", "new_content": "x" }, "cwd": "/w", "phase": "pre" },
+  "expect": { "phase": "pre", "tool": "Edit", "file_path": "src/a.ts" }
+}

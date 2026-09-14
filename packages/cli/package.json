@@ -1,0 +1,50 @@
+{
+  "name": "nightwatch-agent",
+  "version": "0.1.0",
+  "description": "Nightwatch: run Claude Code overnight in a guarded Git worktree and wake up to a ranked, reviewable report.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "nightwatch": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "claude-code",
+    "agent",
+    "hooks",
+    "safety",
+    "worktree",
+    "supervisor",
+    "overnight",
+    "guardrails"
+  ],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HrishiPatel27/Agentic-Call-Check.git",
+    "directory": "packages/cli"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@nightwatch-agent/shared": "0.1.0",
+    "@nightwatch-agent/policy": "0.1.0",
+    "@nightwatch-agent/daemon": "0.1.0",
+    "@nightwatch-agent/report": "0.1.0",
+    "@nightwatch-agent/hook": "0.1.0",
+    "yaml": "^2.9.1"
+  }
+}

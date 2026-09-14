@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.tsbuildinfo
+*.vsix
+.nightwatch/
+.DS_Store
+Thumbs.db
+npm-debug.log*
+coverage/
+.tmp/
