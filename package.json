@@ -1,0 +1,32 @@
+{
+  "name": "nightwatch-monorepo",
+  "private": true,
+  "description": "Nightwatch: a local overnight supervisor for coding agents. Guarded Claude Code runs in a disposable Git worktree with a reviewable morning report.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/policy",
+    "packages/daemon",
+    "packages/report",
+    "packages/hook",
+    "packages/cli",
+    "packages/vscode"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/shared packages/policy packages/daemon packages/report packages/hook packages/cli",
+    "build:vscode": "npm run build --workspace packages/vscode",
+    "watch": "tsc -b -w packages/cli",
+    "typecheck": "npm run build",
+    "test": "npm run build && node --test --test-reporter=spec \"packages/*/dist/**/*.test.js\"",
+    "fixtures": "node packages/cli/dist/bin.js policy fixtures",
+    "clean": "node scripts/clean.mjs",
+    "nightwatch": "node packages/cli/dist/bin.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "typescript": "~5.9.3"
+  }
+}

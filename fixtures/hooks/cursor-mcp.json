@@ -1,0 +1,4 @@
+{
+  "payload": { "conversation_id": "c1", "hook_event_name": "beforeMCPExecution", "workspace_roots": ["/w"], "tool_name": "create_issue", "tool_input": { "title": "x" }, "mcp_server_name": "github", "url": "https://mcp.example" },
+  "expect": { "phase": "pre", "tool": "mcp__github__create_issue" }
+}

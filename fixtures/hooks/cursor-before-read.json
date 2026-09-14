@@ -1,0 +1,4 @@
+{
+  "payload": { "conversation_id": "c1", "hook_event_name": "beforeReadFile", "workspace_roots": ["/w"], "file_path": "/w/.env", "content": "", "attachments": [] },
+  "expect": { "phase": "pre", "tool": "Read", "file_path": "/w/.env" }
+}

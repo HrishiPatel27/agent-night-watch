@@ -1,0 +1,4 @@
+{
+  "payload": { "session_id": "s", "cwd": "/w", "hook_event_name": "BeforeTool", "tool_name": "mcp_github_list_issues", "tool_input": {}, "mcp_context": { "server": "github" } },
+  "expect": { "phase": "pre", "tool": "mcp__github__list_issues" }
+}

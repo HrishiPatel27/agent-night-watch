@@ -1,0 +1,24 @@
+{
+  "name": "@nightwatch-agent/hook",
+  "version": "0.1.0",
+  "description": "Nightwatch Claude Code hook adapter: reads hook JSON on stdin and emits a policy decision",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=22.13.0" },
+  "repository": { "type": "git", "url": "https://github.com/HrishiPatel27/Agentic-Call-Check.git", "directory": "packages/hook" },
+  "scripts": { "build": "tsc -b" },
+  "dependencies": {
+    "@nightwatch-agent/shared": "0.1.0",
+    "@nightwatch-agent/policy": "0.1.0",
+    "@nightwatch-agent/daemon": "0.1.0"
+  }
+}

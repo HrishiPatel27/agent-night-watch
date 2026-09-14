@@ -1,0 +1,46 @@
+{
+  "name": "nightwatch-vscode",
+  "displayName": "Nightwatch",
+  "description": "Start, watch and review guarded overnight coding-agent runs from VS Code.",
+  "version": "0.1.0",
+  "publisher": "nightwatch-agent",
+  "license": "MIT",
+  "private": true,
+  "repository": { "type": "git", "url": "https://github.com/HrishiPatel27/Agentic-Call-Check.git", "directory": "packages/vscode" },
+  "engines": { "vscode": "^1.90.0", "node": ">=22.13.0" },
+  "categories": ["Other"],
+  "keywords": ["agent", "claude code", "codex", "cursor", "safety", "overnight"],
+  "main": "./dist/extension.js",
+  "activationEvents": ["workspaceContains:.nightwatch/policy.yaml", "onCommand:nightwatch.init"],
+  "contributes": {
+    "commands": [
+      { "command": "nightwatch.init", "title": "Nightwatch: Initialize this repository" },
+      { "command": "nightwatch.run", "title": "Nightwatch: Start a guarded run" },
+      { "command": "nightwatch.status", "title": "Nightwatch: Show run status" },
+      { "command": "nightwatch.stop", "title": "Nightwatch: Stop the active run" },
+      { "command": "nightwatch.openReport", "title": "Nightwatch: Open latest report" },
+      { "command": "nightwatch.openDashboard", "title": "Nightwatch: Open live dashboard" },
+      { "command": "nightwatch.policyCheck", "title": "Nightwatch: Check a command against the policy" },
+      { "command": "nightwatch.openPolicy", "title": "Nightwatch: Edit policy.yaml" }
+    ],
+    "configuration": {
+      "title": "Nightwatch",
+      "properties": {
+        "nightwatch.cliPath": { "type": "string", "default": "nightwatch", "description": "Path to the nightwatch CLI (defaults to the one on PATH)." },
+        "nightwatch.agent": { "type": "string", "default": "", "description": "Agent to launch (claude-code, codex, gemini-cli, copilot-cli, cursor, grok, opencode, amp, aider). Empty uses config.yaml." },
+        "nightwatch.defaultHours": { "type": "number", "default": 8 },
+        "nightwatch.defaultBudgetUsd": { "type": "number", "default": 5 },
+        "nightwatch.pollSeconds": { "type": "number", "default": 20, "description": "How often the status bar refreshes while a run is active." }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.9.2",
+    "typescript": "~5.9.3"
+  }
+}

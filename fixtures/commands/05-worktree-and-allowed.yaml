@@ -1,0 +1,195 @@
+# Path containment and the allow list. The worktree is the cwd of every case.
+- command: "ls -la"
+  expect: allow
+- command: "cat src/index.ts"
+  expect: allow
+- command: "cat /etc/passwd"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "cat /etc/hosts"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "cat /etc/hosts"
+  expect: allow
+  policy: { allow: { read_paths: ["/etc/**"] } }
+- command: "ls ~"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "cd ${PROJECT_ROOT} && ls"
+  expect: allow
+  note: the project root is readable (cd into it is allowed)
+- command: "cd / && ls"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "cd ${PROJECT_ROOT} && rm x"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "cd ../.. && rm x"
+  expect: deny
+  note: the run directory above the worktree holds supervisor state
+- command: "echo hello > notes.txt"
+  expect: allow
+- command: "echo hello > ${PROJECT_ROOT}/notes.txt"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+  note: the main project tree is readable but not writable in quarantine mode
+- command: "echo x >> ~/.bashrc"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "mkdir -p tmp/out && touch tmp/out/a.txt"
+  expect: allow
+- command: "mkdir /opt/app"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "mv src/a.ts ${PROJECT_ROOT}/src/a.ts"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "sed -i 's/foo/bar/' src/app.ts"
+  expect: allow
+- command: "sed -i 's/foo/bar/' ${PROJECT_ROOT}/src/app.ts"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "sed 's/foo/bar/' src/app.ts"
+  expect: allow
+- command: "tar -xzf vendor.tgz -C /usr/local"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "git status"
+  expect: allow
+- command: "git diff --stat"
+  expect: allow
+- command: "git log --oneline -20"
+  expect: allow
+- command: "git add -A && git commit -m 'wip: reproduce failure'"
+  expect: allow
+- command: "git stash && git stash pop"
+  expect: allow
+- command: "git rebase main"
+  expect: allow
+- command: "git config user.email bot@example.com"
+  expect: allow
+- command: "git config --global user.email bot@example.com"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "npm test"
+  expect: allow
+  note: on the fixture allow list
+- command: "npm test -- --runInBand"
+  expect: allow
+- command: "npm run lint"
+  expect: allow
+- command: "npm run build"
+  expect: deny
+  reason: UNKNOWN_COMMAND
+  note: not on the fixture allow list → deferred → denied when unattended
+- command: "npm run build"
+  expect: allow
+  policy: { unknown_commands: allow }
+- command: "npm ci"
+  expect: deny
+  reason: UNKNOWN_COMMAND
+- command: "npm ls --depth=0"
+  expect: allow
+- command: "node --version && npm --version"
+  expect: allow
+- command: "node scripts/seed.js"
+  expect: deny
+  reason: UNKNOWN_COMMAND
+- command: "python3 -m pytest tests/"
+  expect: deny
+  reason: UNKNOWN_COMMAND
+- command: "python3 -m pytest tests/"
+  expect: allow
+  policy: { allow: { commands: ["python3 -m pytest *"] } }
+- command: "npx eslint ."
+  expect: deny
+  reason: UNKNOWN_COMMAND
+- command: "grep -rn 'TODO' src | head -50"
+  expect: allow
+- command: "rg -n 'fetch\\(' src/"
+  expect: allow
+- command: "find src -name '*.test.ts' | wc -l"
+  expect: allow
+- command: "for f in src/*.ts; do wc -l \"$f\"; done"
+  expect: allow
+- command: "if npm test; then echo ok; else echo failed; fi"
+  expect: allow
+- command: "cat package.json | jq .scripts"
+  expect: allow
+- command: "awk '{print $1}' data.csv"
+  expect: allow
+- command: "awk '{print > \"/tmp/out\"}' data.csv"
+  expect: deny
+  reason: UNKNOWN_COMMAND
+- command: "head -c 100 /dev/urandom | xxd"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+  note: /dev is not readable; add allow.read_paths if needed
+- command: "sleep 5"
+  expect: allow
+- command: "ps aux | grep node"
+  expect: allow
+- command: "which node"
+  expect: allow
+- command: "git diff"
+  expect: allow
+  policy: { allow: { builtin_safe_commands: false } }
+  note: explicit allow list still applies when builtins are disabled
+- command: "ls"
+  expect: deny
+  reason: UNKNOWN_COMMAND
+  policy: { allow: { builtin_safe_commands: false } }
+- tool: Read
+  input: { file_path: "src/index.ts" }
+  expect: allow
+- tool: Read
+  input: { file_path: "/etc/hosts" }
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- tool: Write
+  input: { file_path: "src/new.ts", content: "export {}" }
+  expect: allow
+- tool: Write
+  input: { file_path: "${PROJECT_ROOT}/src/new.ts", content: "export {}" }
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- tool: Edit
+  input: { file_path: "README.md", old_string: "a", new_string: "b" }
+  expect: allow
+- tool: Glob
+  input: { pattern: "**/*.ts" }
+  expect: allow
+- tool: Grep
+  input: { pattern: "TODO", path: "/" }
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- tool: Task
+  input: { description: "explore", prompt: "look around" }
+  expect: allow
+- tool: TodoWrite
+  input: { todos: [] }
+  expect: allow
+- tool: mcp__github__create_issue
+  input: { title: "x" }
+  expect: deny
+  reason: UNKNOWN_TOOL
+- tool: mcp__github__create_issue
+  input: { title: "x" }
+  expect: allow
+  policy: { allow: { mcp_tools: ["mcp__github__*"] } }
+- tool: mcp__db__query
+  input: { sql: "select 1" }
+  expect: allow
+  policy: { deny: { unknown_mcp_tools: false } }
+- tool: Artifact
+  input: { file_path: "x.html" }
+  expect: deny
+  reason: PROD_RISK
+- tool: SomeFutureTool
+  input: {}
+  expect: deny
+  reason: UNKNOWN_TOOL
+- tool: Bash
+  input: { command: "" }
+  expect: deny
+  reason: MALFORMED_INPUT
