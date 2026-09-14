@@ -1,0 +1,7 @@
+{
+  "payload": {
+    "session_id": "s", "turn_id": "t", "cwd": "/w", "hook_event_name": "PreToolUse", "model": "gpt-5", "permission_mode": "default",
+    "tool_name": "Bash", "tool_input": { "command": "cargo test" }, "tool_use_id": "call_1", "transcript_path": null
+  },
+  "expect": { "phase": "pre", "tool": "Bash", "command": "cargo test" }
+}

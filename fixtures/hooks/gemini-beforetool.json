@@ -1,0 +1,4 @@
+{
+  "payload": { "session_id": "s", "transcript_path": "/t", "cwd": "/w", "hook_event_name": "BeforeTool", "timestamp": "2026-09-10T00:00:00Z", "tool_name": "write_file", "tool_input": { "file_path": "/w/src/x.ts", "content": "x" } },
+  "expect": { "phase": "pre", "tool": "Write", "file_path": "/w/src/x.ts" }
+}

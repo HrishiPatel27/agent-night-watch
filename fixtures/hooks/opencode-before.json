@@ -1,0 +1,4 @@
+{
+  "payload": { "hook_event_name": "tool.execute.before", "tool": "bash", "args": { "command": "npm run lint" }, "sessionID": "s", "callID": "c", "cwd": "/w" },
+  "expect": { "phase": "pre", "tool": "Bash", "command": "npm run lint" }
+}

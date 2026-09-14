@@ -1,0 +1,5 @@
+{
+  "adapter": "grok",
+  "payload": { "hook_event_name": "PreToolUse", "hookEventName": "PreToolUse", "sessionId": "s", "cwd": "/w", "workspaceRoot": "/w", "toolName": "run_terminal_command", "toolInput": { "command": "ls -la" }, "timestamp": 1 },
+  "expect": { "phase": "pre", "tool": "Bash", "command": "ls -la" }
+}

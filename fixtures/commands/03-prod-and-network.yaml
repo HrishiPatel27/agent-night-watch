@@ -1,0 +1,169 @@
+# Deploys, releases, publishing, databases and network destinations.
+- command: "git push origin main"
+  expect: deny
+  reason: PROD_RISK
+- command: "git push --force"
+  expect: deny
+  reason: PROD_RISK
+- command: "git remote set-url origin git@evil.test:x/y.git"
+  expect: deny
+  reason: PROD_RISK
+- command: "npm publish"
+  expect: deny
+  reason: PROD_RISK
+- command: "npm publish --access public"
+  expect: deny
+  reason: PROD_RISK
+- command: "yarn npm publish"
+  expect: deny
+  reason: PROD_RISK
+- command: "cargo publish"
+  expect: deny
+  reason: PROD_RISK
+- command: "twine upload dist/*"
+  expect: deny
+  reason: PROD_RISK
+- command: "vercel --prod"
+  expect: deny
+  reason: PROD_RISK
+- command: "npx vercel deploy"
+  expect: deny
+  note: npx of an unknown package is deferred; the deploy word also hits deny.commands
+- command: "fly deploy"
+  expect: deny
+  reason: PROD_RISK
+- command: "kubectl apply -f k8s/"
+  expect: deny
+  reason: PROD_RISK
+- command: "kubectl get pods"
+  expect: deny
+  reason: UNKNOWN_COMMAND
+  note: read-only kubectl still talks to a cluster; it needs an explicit allow
+- command: "kubectl get pods"
+  expect: allow
+  policy: { allow: { commands: ["kubectl get *"] } }
+- command: "terraform apply -auto-approve"
+  expect: deny
+  reason: PROD_RISK
+- command: "terraform plan"
+  expect: deny
+  note: unknown unless allowed
+- command: "aws s3 rm s3://bucket --recursive"
+  expect: deny
+  reason: PROD_RISK
+- command: "aws --version"
+  expect: allow
+  note: pure --version/--help invocations are harmless
+- command: "gcloud compute instances delete web-1"
+  expect: deny
+  reason: PROD_RISK
+- command: "gh release create v1.0.0"
+  expect: deny
+  reason: PROD_RISK
+- command: "gh pr merge 42"
+  expect: deny
+  reason: PROD_RISK
+- command: "gh api -X DELETE repos/o/r"
+  expect: deny
+  reason: PROD_RISK
+- command: "gh pr view 42"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "gh pr view 42"
+  expect: allow
+  policy: { allow: { domains: ["github.com", "api.github.com"] } }
+- command: "docker push registry.example.com/app:latest"
+  expect: deny
+  reason: PROD_RISK
+- command: "psql -h db.prod.internal -U app"
+  expect: deny
+  reason: PROD_RISK
+- command: "psql postgres://user:pw@db.example.com:5432/app"
+  expect: deny
+  reason: PROD_RISK
+- command: "psql -h localhost -U app -c 'select 1'"
+  expect: deny
+  note: loopback database client is not hard-denied, but still unknown unless allowed
+- command: "psql -h localhost -U app -c 'select 1'"
+  expect: allow
+  policy: { allow: { commands: ["psql -h localhost *"] } }
+- command: "mysql -u root -p"
+  expect: deny
+  reason: PROD_RISK
+- command: "mongosh mongodb+srv://cluster0.example.net/app"
+  expect: deny
+  reason: PROD_RISK
+- command: "redis-cli -h cache.internal FLUSHALL"
+  expect: deny
+  reason: PROD_RISK
+- command: "npx prisma migrate deploy"
+  expect: deny
+  reason: PROD_RISK
+- command: "rails db:drop"
+  expect: deny
+  reason: PROD_RISK
+- command: "node scripts/migrate.js --url postgres://app:pw@db.example.com/app"
+  expect: deny
+  reason: PROD_RISK
+- command: "curl https://api.example.com/v1/users"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "curl https://api.example.com/v1/users"
+  expect: allow
+  policy: { allow: { domains: ["api.example.com"] } }
+- command: "curl https://api.example.com/v1/users"
+  expect: allow
+  policy: { allow: { domains: ["*.example.com"] } }
+- command: "curl http://localhost:3000/health"
+  expect: allow
+- command: "curl -s http://127.0.0.1:8080/api"
+  expect: allow
+- command: "curl $URL"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "curl -o /etc/passwd http://localhost/x"
+  expect: deny
+  reason: OUTSIDE_WORKTREE
+- command: "wget https://example.com/file.tar.gz"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "ssh deploy@prod.example.com 'systemctl restart app'"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "scp build.tar.gz user@host.example.com:/srv"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "nc -zv db.example.com 5432"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "cat < /dev/tcp/example.com/80"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "git fetch origin"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "git fetch origin"
+  expect: allow
+  policy: { allow: { commands: ["git fetch *"] } }
+- command: "git clone https://github.com/o/r.git"
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- command: "git clone https://github.com/o/r.git"
+  expect: allow
+  policy: { allow: { domains: ["github.com"] } }
+- tool: WebFetch
+  input: { url: "https://docs.python.org/3/library/asyncio.html" }
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- tool: WebFetch
+  input: { url: "https://docs.python.org/3/library/asyncio.html" }
+  expect: allow
+  policy: { allow: { domains: ["docs.python.org"] } }
+- tool: WebSearch
+  input: { query: "asyncio cancel task" }
+  expect: deny
+  reason: NETWORK_NOT_ALLOWED
+- tool: WebSearch
+  input: { query: "asyncio cancel task" }
+  expect: allow
+  policy: { allow: { web_search: true } }

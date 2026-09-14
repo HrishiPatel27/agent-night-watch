@@ -1,0 +1,23 @@
+{
+  "name": "@nightwatch-agent/report",
+  "version": "0.1.0",
+  "description": "Nightwatch morning report renderer (HTML, Markdown, JSON)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=22.13.0" },
+  "repository": { "type": "git", "url": "https://github.com/HrishiPatel27/Agentic-Call-Check.git", "directory": "packages/report" },
+  "scripts": { "build": "tsc -b" },
+  "dependencies": {
+    "@nightwatch-agent/shared": "0.1.0",
+    "@nightwatch-agent/daemon": "0.1.0"
+  }
+}

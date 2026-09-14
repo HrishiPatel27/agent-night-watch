@@ -1,0 +1,4 @@
+{
+  "payload": { "sessionId": "s", "timestamp": 1, "cwd": "/w", "toolName": "view", "toolArgs": { "path": "/w/README.md" } },
+  "expect": { "phase": "pre", "tool": "Read", "file_path": "/w/README.md" }
+}

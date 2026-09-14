@@ -1,0 +1,5 @@
+{
+  "adapter": "claude-code",
+  "payload": { "session_id": "abc123", "hook_event_name": "Stop", "stop_reason": "end_turn", "last_assistant_message": "done" },
+  "expect": { "phase": "other" }
+}

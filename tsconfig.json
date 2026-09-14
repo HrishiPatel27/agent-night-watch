@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/policy" },
+    { "path": "packages/daemon" },
+    { "path": "packages/report" },
+    { "path": "packages/hook" },
+    { "path": "packages/cli" }
+  ]
+}
